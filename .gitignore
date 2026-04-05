@@ -1,0 +1,13 @@
+# Carpeta de build
+build/
+
+# Archivos compilados
+*.o
+*.out
+*.exe
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
