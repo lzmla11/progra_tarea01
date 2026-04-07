@@ -32,11 +32,63 @@ Tensor::Tensor(double* data, int* ref_count,
     (*ref_count)++;
 }
 
+Tensor::Tensor(const Tensor& other)
+    : data(other.data), ref_count(other.ref_count),
+      shape(other.shape), values(other.values) {
+    (*ref_count)++;
+}
+
+Tensor::Tensor(Tensor&& other) noexcept
+    : data(other.data), ref_count(other.ref_count),
+      shape(std::move(other.shape)), values(std::move(other.values)) {
+    other.data = nullptr;
+    other.ref_count = nullptr;
+}
+
+Tensor& Tensor::operator=(const Tensor& other) {
+    if (this != &other) {
+        if (ref_count) {
+	(*ref_count)--;
+        if (*ref_count == 0) {
+            delete[] data;
+            delete ref_count;
+        } 
+	}
+        data = other.data;
+        ref_count = other.ref_count;
+        shape = other.shape;
+        values = other.values;
+        (*ref_count)++;
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator=(Tensor&& other) noexcept {
+    if (this != &other) {
+	    if(ref_count){
+        (*ref_count)--;
+        if (*ref_count == 0) {
+            delete[] data;
+            delete ref_count;
+        }
+	    }
+        data = other.data;
+        ref_count = other.ref_count;
+        shape = std::move(other.shape);
+        values = std::move(other.values);
+        other.data = nullptr;
+        other.ref_count = nullptr;
+    }
+    return *this;
+}
+
 Tensor::~Tensor() {
+	if (ref_count) {
 	(*ref_count)--; 
 	if (*ref_count == 0) {
-		delete data[]; 
+		delete[] data; 
 		delete ref_count; 
+	}
 	}
 }
 
@@ -381,7 +433,24 @@ Tensor matmul(const Tensor& a, const Tensor& b) {
         }
     }
 
-    return Tensor(new_shape, values);
+    return Tensor(new_shape, std::move(values));
+}
+
+Tensor dot(const Tensor& a, const Tensor& b) {
+
+    if (a.shape != b.shape) {
+        throw std::invalid_argument("Las dimensiones deben coincidir");
+    }
+
+    size_t total = 1;
+    for (size_t d : a.shape) total *= d;
+
+    double result = 0.0;
+    for (size_t i = 0; i < total; i++) {
+        result += a.data[i] * b.data[i];
+    }
+
+    return Tensor({1}, {result});
 }
 
 
